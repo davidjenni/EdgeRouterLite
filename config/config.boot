@@ -9,62 +9,91 @@ firewall {
     ipv6-src-route disable
     ip-src-route disable
     log-martians enable
-    name WAN_IN {
-        default-action drop
-        description "packets from Internet to LAN & WLAN"
-        enable-default-log
+    modify pppoe-out {
+        default-action accept
+        description "TCP clamping"
         rule 1 {
-            action accept
-            description "allow established sessions"
-            log disable
-            protocol all
-            state {
-                established enable
-                invalid disable
-                new disable
-                related enable
+            action modify
+            modify {
+                tcp-mss 1452
             }
-        }
-        rule 2 {
-            action drop
-            description "drop invalid state"
-            log disable
-            protocol all
-            state {
-                established disable
-                invalid enable
-                new disable
-                related disable
+            protocol tcp
+            tcp {
+                flags SYN
             }
         }
     }
-    name WAN_LOCAL {
+    name eth0-in {
+        default-action accept
+        description "Wired network to other networks."
+    }
+    name eth0-local {
+        default-action accept
+        description "Wired network to router."
+    }
+    name eth1-in {
+        default-action accept
+        description "Wireless network to other networks"
+    }
+    name eth1-local {
+        default-action accept
+        description "Wireless network to router."
+    }
+    name pppoe-in {
         default-action drop
-        description "packets from internet/WAN to router"
-        enable-default-log
+        description "Internet to internal networks"
         rule 1 {
             action accept
-            description "allow established session to the router"
+            description "Allow established/related"
             log disable
-            protocol all
             state {
                 established enable
-                invalid disable
-                new disable
                 related enable
+                new disable
             }
         }
         rule 2 {
             action drop
-            description "drop invalid state"
+            description "Drop invalid state"
             log enable
             protocol all
             state {
-                established disable
                 invalid enable
-                new disable
-                related disable
             }
+        }
+    }
+    name pppoe-local {
+        default-action drop
+        description "Internet to router"
+        rule 1 {
+            action accept
+            description "Allow established/related"
+            log disable
+            protocol all
+            state {
+                established enable
+                related enable
+                new disable
+                invalid disable
+            }
+        }
+        rule 2 {
+            action drop
+            description "Drop invalid state"
+            log enable
+            state {
+                invalid enable
+            }
+        }
+        rule 5 {
+            action accept
+            description "ICMP 50/m"
+            limit {
+                burst 1
+                rate 50/minute
+            }
+            log enable
+            protocol icmp
         }
     }
     receive-redirects disable
@@ -76,28 +105,45 @@ interfaces {
     ethernet eth0 {
         address 10.61.4.1/22
         description LAN
-        duplex auto
-        speed auto
-    }
-    ethernet eth1 {
-        address 10.1.1.1/22
-        description GuestLAN2
-        disable
-        duplex auto
-        speed auto
-    }
-    ethernet eth2 {
-        address dhcp
-        description "WAN - eth0"
-        duplex auto
-        speed auto
         firewall {
             in {
-                name WAN_IN
+                name eth0-in
             }
             local {
-                name WAN_LOCAL
+                name eth0-local
             }
+        }
+    }
+    ethernet eth1 {
+        address 10.61.6.1/22
+        description Wireless LAN
+        firewall {
+            in {
+                name eth1-in
+            }
+            local {
+                name eth1-local
+            }
+        }
+    }
+    ethernet eth2 {
+        pppoe 0 {
+            default-route auto
+            firewall {
+                in {
+                    name pppoe-in
+                }
+                local {
+                    name pppoe-local
+                }
+                out {
+                    modify pppoe-out
+                }
+            }
+            mtu 1492
+            name-server auto
+            password secret
+            user-id joe
         }
     }
     loopback lo {
@@ -106,32 +152,32 @@ interfaces {
 service {
     dhcp-server {
         disabled false
-        shared-network-name LAN {
+        shared-network-name wired-eth0 {
             authoritative disable
-            description "Owner LAN"
-            subnet 10.61.4.0/22 {
+            description "Wired Network - Eth1"
+            subnet 10.61.4.0/24 {
                 default-router 10.61.4.1
                 dns-server 10.61.4.1
-                dns-server 8.8.8.8
-                domain-name jenni.local
-                lease 10800
+                lease 86400
                 ntp-server 10.61.4.1
                 start 10.61.4.50 {
                     stop 10.61.5.254
                 }
+                time-server 10.61.4.1
             }
         }
-        shared-network-name GuestLAN2 {
+        shared-network-name wireless-eth1 {
             authoritative disable
-            description "Guest LAN"
-            subnet 10.1.1.0/22 {
-                default-router 10.1.1.1
-                dns-server 8.8.8.8
-                domain-name jenni.guest
+            description "Wireless Network - Eth2"
+            subnet 10.61.6.0/24 {
+                default-router 10.61.6.1
+                dns-server 10.61.6.1
                 lease 86400
-                start 10.1.1.50 {
-                    stop 10.1.2.254
+                ntp-server 10.61.6.1
+                start 10.61.6.50 {
+                    stop 10.61.7.254
                 }
+                time-server 10.61.6.1
             }
         }
     }
@@ -140,29 +186,43 @@ service {
             cache-size 450
             listen-on eth0
             listen-on eth1
+            system
         }
     }
     gui {
         https-port 443
         listen-address 10.61.4.1
+        listen-address 10.61.6.1
     }
     nat {
-        rule 5000 {
-            description "masquerade for WAN"
+        rule 5010 {
             log disable
-            outbound-interface eth0
+            outbound-interface pppoe0
+            protocol all
             type masquerade
         }
     }
     ssh {
         listen-address 10.61.4.1
+        listen-address 10.61.6.1
         port 22
         protocol-version v2
+    }
+    upnp {
+        listen-on eth0 {
+            outbound-interface pppoe0
+        }
+        listen-on eth1 {
+            outbound-interface pppoe0
+        }
     }
 }
 system {
     domain-name jenni.local
     host-name sentinel
+    ipv6 {
+        disable
+    }
     login {
         user ubnt {
             authentication {
@@ -171,6 +231,8 @@ system {
             level admin
         }
     }
+    name-server 8.8.8.8
+    name-server 208.67.220.220
     ntp {
         server 0.ubnt.pool.ntp.org {
         }
@@ -191,7 +253,7 @@ system {
             }
         }
     }
-    time-zone America/Los_Angeles
+    time-zone UTC
 }
 
 

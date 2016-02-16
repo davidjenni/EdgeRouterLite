@@ -129,7 +129,7 @@ interfaces {
     ethernet eth2 {
         duplex auto
         pppoe 0 {
-            default-route auto
+            default-route force
             firewall {
                 in {
                     name pppoe-in
@@ -149,6 +149,14 @@ interfaces {
         speed auto
     }
     loopback lo {
+    }
+}
+protocols {
+    static {
+        interface-route 0.0.0.0/0 {
+            next-hop-interface pppoe0 {
+            }
+        }
     }
 }
 service {
@@ -199,7 +207,7 @@ service {
     nat {
         rule 5010 {
             log disable
-            outbound-interface eth2
+            outbound-interface pppoe0
             protocol all
             type masquerade
         }
@@ -227,6 +235,7 @@ system {
         }
     }
     name-server 8.8.8.8
+    name-server 8.8.4.4
     ntp {
         server 0.ubnt.pool.ntp.org {
         }

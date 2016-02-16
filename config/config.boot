@@ -1,16 +1,11 @@
 firewall {
     all-ping enable
     broadcast-ping disable
-    conntrack-expect-table-size 4096
-    conntrack-hash-size 4096
-    conntrack-table-size 32768
-    conntrack-tcp-loose enable
     ipv6-receive-redirects disable
     ipv6-src-route disable
     ip-src-route disable
     log-martians enable
     modify pppoe-out {
-        default-action accept
         description "TCP clamping"
         rule 1 {
             action modify
@@ -25,19 +20,19 @@ firewall {
     }
     name eth0-in {
         default-action accept
-        description "Wired network to other networks."
+        description "Wired network to other networks"
     }
     name eth0-local {
         default-action accept
-        description "Wired network to router."
+        description "Wired network to router"
     }
     name eth1-in {
         default-action accept
-        description "Wireless network to other networks"
+        description "Wireless to other networks"
     }
     name eth1-local {
         default-action accept
-        description "Wireless network to router."
+        description "Wireless to router"
     }
     name pppoe-in {
         default-action drop
@@ -48,8 +43,9 @@ firewall {
             log disable
             state {
                 established enable
-                related enable
+                invalid disable
                 new disable
+                related enable
             }
         }
         rule 2 {
@@ -72,9 +68,9 @@ firewall {
             protocol all
             state {
                 established enable
-                related enable
-                new disable
                 invalid disable
+                new disable
+                related enable
             }
         }
         rule 2 {
@@ -105,6 +101,7 @@ interfaces {
     ethernet eth0 {
         address 10.61.4.1/22
         description LAN
+        duplex auto
         firewall {
             in {
                 name eth0-in
@@ -113,10 +110,12 @@ interfaces {
                 name eth0-local
             }
         }
+        speed auto
     }
     ethernet eth1 {
-        address 10.61.6.1/22
-        description Wireless LAN
+        address 10.1.1.1/22
+        description Wireless
+        duplex auto
         firewall {
             in {
                 name eth1-in
@@ -125,8 +124,10 @@ interfaces {
                 name eth1-local
             }
         }
+        speed auto
     }
     ethernet eth2 {
+        duplex auto
         pppoe 0 {
             default-route auto
             firewall {
@@ -142,9 +143,10 @@ interfaces {
             }
             mtu 1492
             name-server auto
-            password secret
-            user-id joe
+            password aSecret
+            user-id someone
         }
+        speed auto
     }
     loopback lo {
     }
@@ -152,13 +154,14 @@ interfaces {
 service {
     dhcp-server {
         disabled false
+        hostfile-update disable
         shared-network-name wired-eth0 {
             authoritative disable
-            description "Wired Network - Eth1"
-            subnet 10.61.4.0/24 {
+            description "Wired - eth1"
+            subnet 10.61.4.0/22 {
                 default-router 10.61.4.1
                 dns-server 10.61.4.1
-                lease 86400
+                lease 3600
                 ntp-server 10.61.4.1
                 start 10.61.4.50 {
                     stop 10.61.5.254
@@ -168,16 +171,16 @@ service {
         }
         shared-network-name wireless-eth1 {
             authoritative disable
-            description "Wireless Network - Eth2"
-            subnet 10.61.6.0/24 {
-                default-router 10.61.6.1
-                dns-server 10.61.6.1
-                lease 86400
-                ntp-server 10.61.6.1
-                start 10.61.6.50 {
-                    stop 10.61.7.254
+            description "Wireless - eth2"
+            subnet 10.1.1.0/22 {
+                default-router 10.1.1.1
+                dns-server 10.1.1.1
+                lease 3600
+                ntp-server 10.1.1.1
+                start 10.1.1.20 {
+                    stop 10.1.2.254
                 }
-                time-server 10.61.6.1
+                time-server 10.1.1.1
             }
         }
     }
@@ -192,47 +195,38 @@ service {
     gui {
         https-port 443
         listen-address 10.61.4.1
-        listen-address 10.61.6.1
     }
     nat {
         rule 5010 {
             log disable
-            outbound-interface pppoe0
+            outbound-interface eth2
             protocol all
             type masquerade
         }
     }
     ssh {
         listen-address 10.61.4.1
-        listen-address 10.61.6.1
         port 22
         protocol-version v2
     }
-    upnp {
-        listen-on eth0 {
-            outbound-interface pppoe0
-        }
-        listen-on eth1 {
-            outbound-interface pppoe0
-        }
-    }
 }
 system {
+    conntrack {
+        expect-table-size 4096
+        hash-size 4096
+        table-size 32768
+    }
     domain-name jenni.local
     host-name sentinel
-    ipv6 {
-        disable
-    }
     login {
         user ubnt {
             authentication {
-                encrypted-password "$1$zKNoUbAo$gomzUbYvgyUMcD436Wo66."
+                encrypted-password $1$zKNoUbAo$gomzUbYvgyUMcD436Wo66.
             }
             level admin
         }
     }
     name-server 8.8.8.8
-    name-server 208.67.220.220
     ntp {
         server 0.ubnt.pool.ntp.org {
         }
@@ -258,5 +252,5 @@ system {
 
 
 /* Warning: Do not remove the following line. */
-/* === vyatta-config-version: "ubnt-pptp@1:nat@3:conntrack@1:dhcp-server@4:cron@1:zone-policy@1:quagga@2:vrrp@1:system@4:qos@1:webgui@1:config-management@1:ipsec@4:firewall@5:ubnt-util@1:webproxy@1:dhcp-relay@1" === */
+/* === vyatta-config-version: "config-management@1:conntrack@1:cron@1:dhcp-relay@1:dhcp-server@4:firewall@5:ipsec@4:nat@3:qos@1:quagga@2:system@4:ubnt-pptp@1:ubnt-util@1:vrrp@1:webgui@1:webproxy@1:zone-policy@1" === */
 /* Release version: v1.7.0.4783374.150622.1534 */

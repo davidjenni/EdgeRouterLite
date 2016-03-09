@@ -174,6 +174,18 @@ service {
                 start 10.61.4.50 {
                     stop 10.61.5.254
                 }
+                static-mapping david-pc {
+                    ip-address 10.61.4.132
+                    mac-address 90:b1:1c:73:2a:bd
+                }
+                static-mapping dell-1320c {
+                    ip-address 10.61.4.63
+                    mac-address 08:00:37:74:b6:6e
+                }
+                static-mapping idefix {
+                    ip-address 10.61.4.200
+                    mac-address 90:72:40:00:01:6F
+                }
                 time-server 10.61.4.1
             }
         }

@@ -241,7 +241,7 @@ system {
     login {
         user ubnt {
             authentication {
-                encrypted-password $1$zKNoUbAo$gomzUbYvgyUMcD436Wo66.
+                plaintext-password "ubnt"
             }
             level admin
         }
@@ -274,4 +274,4 @@ system {
 
 /* Warning: Do not remove the following line. */
 /* === vyatta-config-version: "config-management@1:conntrack@1:cron@1:dhcp-relay@1:dhcp-server@4:firewall@5:ipsec@4:nat@3:qos@1:quagga@2:system@4:ubnt-pptp@1:ubnt-util@1:vrrp@1:webgui@1:webproxy@1:zone-policy@1" === */
-/* Release version: v1.7.0.4783374.150622.1534 */
+/* Release version: v1.8.0.4853089.160219.1607 */

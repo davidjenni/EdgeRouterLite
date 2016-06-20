@@ -243,7 +243,6 @@ system {
             authentication {
                 plaintext-password "ubnt"
             }
-            level admin
         }
     }
     name-server 8.8.8.8

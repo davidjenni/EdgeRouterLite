@@ -39,6 +39,43 @@ ls /dev/tty.* | grep -i usb
 screen /dev/tty.usbserial-A6041AEQ 115200
 ````
 
+## Configuration
+### loading config file via CLI (and SSH)
+  - on factory reset ERL, configure your laptop to 192.168.1.22 for the wired LAN connection
+  - connect ethernet cable between laptop and ERL
+  - use scp to copy to ERL's user home directory:
+````
+scp config.boot.myconfig ubnt@192.168.1.1:/config/
+````
+  - ssh connect to ERL and run:
+````
+configure
+load config.boot.myconfig
+commit
+save; exit
+````
+- if default user `ubnt` is still defined:
+  - login via SSH as user ubnt
+  - run the following config steps:
+````
+configure
+set system login user david
+set system login user david authentication plaintext-password <myPassword>
+set system login user david level admin
+commit
+save; exit
+````
+  - logout of ssh connection and login again as new user
+  - delete default ubnt user:
+````
+configure
+delete system login user ubnt
+commit
+save; exit
+
+````
+  - logout of ssh connection and login again as ubnt; this login should now fail
+
 
 ## VLAN for guest access
 [VLAN WalkThrough](https://help.ubnt.com/hc/en-us/articles/205197630-EdgeMAX-VLAN-Walkthrough-with-EdgeSwitch-using-Sample-Enterprise-Topology)

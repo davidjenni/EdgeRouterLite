@@ -166,23 +166,31 @@ service {
                 start 192.168.1.38 {
                     stop 192.168.1.243
                 }
+                static-mapping sentinel {
+                    ip-address 192.168.1.1
+                    mac-address 18:e8:29:b5:78:21
+                }
             }
         }
         shared-network-name LAN2 {
             authoritative disable
             subnet 10.61.4.0/22 {
                 default-router 10.61.4.1
-                dns-server 1.1.1.1
                 dns-server 10.61.4.1
+                dns-server 1.1.1.1
                 domain-name jenni.local
                 lease 86400
                 start 10.61.4.50 {
                     stop 10.61.7.254
                 }
+                static-mapping sentinel {
+                    ip-address 10.61.4.1
+                    mac-address 18:e8:29:b5:78:22
+                }
             }
         }
         static-arp disable
-        use-dnsmasq disable
+        use-dnsmasq enable
     }
     dns {
         forwarding {
@@ -233,7 +241,7 @@ system {
     login {
         user ubnt {
             authentication {
-                plaintext-password "ubnt"
+                plaintext-password ubnt
             }
             level admin
         }
@@ -267,6 +275,29 @@ system {
         }
     }
     time-zone UTC
+    traffic-analysis {
+        dpi enable
+        export enable
+    }
+}
+traffic-control {
+    smart-queue SQM {
+        download {
+            ecn enable
+            flows 1024
+            fq-quantum 1514
+            limit 10240
+            rate 12mbit
+        }
+        upload {
+            ecn enable
+            flows 1024
+            fq-quantum 1514
+            limit 10240
+            rate 600kbit
+        }
+        wan-interface pppoe0
+    }
 }
 
 
